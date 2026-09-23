@@ -179,6 +179,88 @@ The instance threshold in this command is independent of the class threshold in 
 
 To recalculate completed pairs (for example, after changing matching thresholds), add `--force`. If an interrupted run leaves a nonempty per-pair working directory, inspect or remove **that pair's** working directory before retrying; the orchestrator preserves it rather than silently deleting it.
 
+## 6. Merge knowledge graphs using entity alignments
+
+After linking entities from aligned classes, the two knowledge graphs can be merged using the generated entity alignments as `owl:sameAs` links.
+
+The merge script uses a union-find algorithm to group equivalent entities, selects a canonical URI for each group, rewrites both knowledge graphs, and removes duplicate triples.
+
+### Input
+
+The script accepts the TSV output from `align-fuzzy.py`:
+
+```tsv
+<http://dbpedia.org/resource/Berlin>	<http://www.wikidata.org/entity/Q64>	1.000000
+<http://dbpedia.org/resource/Paris>	<http://www.wikidata.org/entity/Q90>	0.950000
+```
+
+It also accepts N-Triples containing `owl:sameAs` statements, which are assigned a confidence of `1.0`.
+
+### Run
+
+```bash
+python smush_rewrite.py \
+  --links results/entity_alignments.tsv \
+  --conf 0.9 \
+  --out-mapping results/uri_mapping.tsv \
+  --rewrite data/dbpedia.nt data/wikidata.nt \
+  --out-dir results/merged
+```
+
+Replace `results/entity_alignments.tsv` with the combined entity-alignment file generated in the previous step.
+
+The `--conf` argument specifies the minimum alignment confidence. Its default is `0.7`.
+
+### Canonical URI selection
+
+Entities connected by accepted alignment links form equivalence groups. A canonical URI is selected for each group according to the following rules, in order:
+
+1. Prefer URIs without percent-encoded characters (`%`).
+2. Prefer shorter URIs.
+3. If their lengths are equal, use lexicographical order.
+
+The mapping file contains the original URI and its canonical URI, separated by a tab. Only URIs that change are written.
+
+The mapping is transitive: if A matches B and B matches C, all three entities receive the same canonical URI, even if A and C were never directly matched.
+
+### Output
+
+```text
+results/
+├── uri_mapping.tsv
+└── merged/
+    ├── dbpedia.nt
+    └── wikidata.nt
+```
+
+Each rewritten N-Triples file contains the original graph with equivalent subject and object URIs replaced by their canonical URIs.
+
+The script uses external `sort -u` to remove duplicate triples within each rewritten file.
+
+### Combine the rewritten graphs
+
+The `--rewrite` option produces separate rewritten files. To combine them into one deduplicated knowledge graph:
+
+```bash
+LC_ALL=C sort -u \
+  -S 50% --parallel=8 \
+  results/merged/dbpedia.nt \
+  results/merged/wikidata.nt \
+  -o results/merged.nt
+```
+
+The resulting `merged.nt` contains triples from both knowledge graphs with aligned entities represented by their canonical URIs.
+
+For large datasets, ensure that sufficient temporary disk space is available for external sorting. GNU `sort` supports the `-T` option to specify a temporary directory.
+
+### Important considerations
+
+- **Confidence threshold:** Only alignment links with confidence greater than or equal to `--conf` are used to merge entities.
+- **Transitive equivalence:** An incorrect alignment can merge entire groups of unrelated entities.
+- **URI replacement:** The script rewrites subject URIs and URI-valued objects. It does not rewrite predicates or URIs embedded inside literals.
+- **Deduplication:** Duplicate triples are removed within each rewritten file and again when the two graphs are combined.
+- **Memory:** Union-find maintains the URI mapping in memory. Memory consumption therefore depends on the number of distinct URIs in the alignment file, not directly on the size of the original knowledge graphs.
+
 ## Output overview
 
 ```text
