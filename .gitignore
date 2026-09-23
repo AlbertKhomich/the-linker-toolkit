@@ -1,0 +1,24 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local data and generated results
+data/
+results/
+alignment_results/
+fuzzy_results/
+*.nt
+*.nt.gz
+*.nt.zst
+
+# SLURM
+slurm-*.out
+slurm-*.err
+align-entities-*.out
+align-entities-*.err
+
+# macOS
+.DS_Store
