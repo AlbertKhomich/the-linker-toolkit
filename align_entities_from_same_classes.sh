@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=align-entities
 #SBATCH --account=your-account
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=your-email
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=24:00:00

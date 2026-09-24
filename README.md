@@ -179,7 +179,35 @@ The instance threshold in this command is independent of the class threshold in 
 
 To recalculate completed pairs (for example, after changing matching thresholds), add `--force`. If an interrupted run leaves a nonempty per-pair working directory, inspect or remove **that pair's** working directory before retrying; the orchestrator preserves it rather than silently deleting it.
 
-## 6. Merge knowledge graphs using entity alignments
+### Performance and resource usage
+
+The following resource usage was recorded for an entity-alignment job on the PC2 Noctua 2 cluster.
+
+| Metric                            |      Value |
+| --------------------------------- | ---------: |
+| Job status                        |  Completed |
+| Wall-clock time                   | 1h 18m 35s |
+| Allocated CPUs                    |          8 |
+| Total CPU time                    | 4h 52m 33s |
+| CPU efficiency                    |      46.5% |
+| Requested memory                  |     32 GiB |
+| Reported peak memory (batch step) |   1.22 GiB |
+
+For a similar workload, a possible starting configuration is:
+
+```bash
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=8G
+#SBATCH --time=03:00:00
+```
+
+CPU utilization averaged approximately 3.72 cores. Keeping eight cores allows for more CPU-intensive phases, while reducing the memory request may improve scheduling flexibility.
+
+These measurements are specific to this run. Resource requirements depend on dataset size, the number of class pairs and the distribution of labels.
+
+**Note:** SLURM's `MaxRSS` for the batch step may not represent aggregate peak memory across all child processes. Check ClusterCockpit before reducing memory allocations for larger jobs.
+
+## 7. Merge knowledge graphs using entity alignments
 
 After linking entities from aligned classes, the two knowledge graphs can be merged using the generated entity alignments as `owl:sameAs` links.
 

@@ -17,6 +17,7 @@ fuzzy_results/
 # SLURM
 slurm-*.out
 slurm-*.err
+*.log
 align-entities-*.out
 align-entities-*.err
 
